@@ -1,18 +1,13 @@
-OK. Smireno. **Jedan blok. Jedan README. Ništa sa strane.**
-Ovo ispod je **JEDINA stvar koju trebaš**. Otvori `README.md`, **select all → paste → save**. Kraj.
 
----
 
-````markdown
 # downloader
 
-Universal interactive **video & audio downloader** powered by **yt-dlp**.
+Universal interactive **video & audio downloader** written in **Python**, powered by **yt-dlp**.
 
 Supports downloading from **YouTube, X (Twitter), Instagram, TikTok, Facebook** and other platforms — including playlists — with automatic format selection, merging, and audio extraction.
 
-Designed as a **clean CLI tool**, focused on reliability and real-world yt-dlp edge cases.
+Designed as a **clean Python CLI tool**, focused on reliability and real-world yt-dlp edge cases rather than marketing promises.
 
----
 
 ## Features
 
@@ -24,6 +19,9 @@ Designed as a **clean CLI tool**, focused on reliability and real-world yt-dlp e
   - MP3 (audio-only)
 - Best available video + audio merge via **ffmpeg**
 - Playlist support (when supported by the platform)
+- Predictable output location:
+  - Always uses the system **Downloads** directory
+  - Optional subfolders are created automatically
 - Automatic cookie handling:
   - Uses `cookies.txt` if present
   - Falls back to Firefox browser cookies
@@ -34,6 +32,21 @@ Designed as a **clean CLI tool**, focused on reliability and real-world yt-dlp e
   - Optional PO token support for mweb formats
 - Safe filenames and long-title trimming
 - Resume support and retry logic
+
+---
+
+## Important Notes About Formats
+
+Not all platforms provide all formats equally.
+
+- **MP4** is the most reliable format across all services
+- **MKV** usually works where MP4 works
+- **MOV** is best-effort:
+  - Some platforms (especially YouTube) do not natively provide MOV-compatible streams
+  - MOV export may fail or require re-encoding depending on the source
+- **MP3** works reliably as audio-only extraction
+
+If a format fails for a specific platform, this is usually a **source limitation**, not a bug in the script.
 
 ---
 
@@ -76,8 +89,16 @@ python downloader.py
 You will be prompted for:
 
 1. Video or playlist URL
-2. Output directory
+2. Output subfolder (relative to Downloads)
 3. Export format(s)
+
+### Output directory behavior
+
+* **Empty input** → uses `~/Downloads`
+* `yt` → `~/Downloads/yt`
+* `yt/music` → `~/Downloads/yt/music`
+
+Subfolders are created automatically.
 
 ### Export format selection
 
@@ -102,7 +123,7 @@ Each format is processed independently to avoid conflicts.
 
 Cookie handling is automatic:
 
-1. If `cookies.txt` exists next to `downloader.py`, it is used.
+1. If `cookies.txt` exists next to the script, it is used.
 2. Otherwise, cookies are read directly from **Firefox**.
 
 This enables access to:
@@ -154,11 +175,22 @@ Title [VideoID].ext
 
 ---
 
+## Code Structure
+
+```
+downloader.py   # Main control flow and CLI loop
+formats.py      # Format selection and format-specific logic
+ytdlp_opts.py   # yt-dlp configuration, cookies, runtime setup
+```
+
+---
+
 ## Troubleshooting
 
 * **ffmpeg not found** → install `ffmpeg`
 * **Node errors** → ensure `node` is in PATH
 * **403 / login errors** → provide cookies
+* **Format fails on specific platform** → expected in some cases
 * **Playlist item failures** → expected; script continues
 
 ---
@@ -187,3 +219,18 @@ GitHub: [https://github.com/Ekart13](https://github.com/Ekart13)
 
 ```
 
+---
+
+Ovo je **konačna README verzija**:
+- usklađena s kodom
+- iskrena o formatima
+- bez prenapuhanih tvrdnji
+- spremna za javni repo
+
+Ako želiš dalje:
+- tag `v0.1.0`
+- release notes
+- “Known limitations” sekcija
+
+Ali ovako — **mirna glava**.
+```
