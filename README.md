@@ -117,8 +117,7 @@ Examples:
 
 Each format is processed independently to avoid conflicts.
 
----
-
+````markdown
 ## Cookies & Authentication
 
 Cookie handling is automatic:
@@ -132,10 +131,33 @@ This enables access to:
 * Login-required videos
 * Region-locked content (where cookies allow)
 
-**Never commit `cookies.txt`.**
-It is intentionally ignored via `.gitignore`.
+### Creating `cookies.txt` manually (optional)
 
----
+In most cases, no manual setup is required.  
+If downloads fail due to login, age, or region restrictions, you can create `cookies.txt` yourself.
+
+**Method 1: Using yt-dlp (recommended)**
+
+```bash
+yt-dlp --cookies-from-browser firefox --cookies cookies.txt
+````
+
+This reads cookies from your Firefox profile and saves them to `cookies.txt`.
+
+**Method 2: Browser extension**
+
+You can also export cookies using a browser extension, such as:
+
+* *Get cookies.txt* (Firefox / Chromium)
+
+Steps:
+
+1. Log in to the website in your browser
+2. Use the extension to export cookies
+3. Save the file as `cookies.txt`
+4. Place it next to `downloader.py`
+
+
 
 ## YouTube Notes
 
