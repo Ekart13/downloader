@@ -117,7 +117,7 @@ Examples:
 
 Each format is processed independently to avoid conflicts.
 
-````markdown
+
 ## Cookies & Authentication
 
 Cookie handling is automatic:
