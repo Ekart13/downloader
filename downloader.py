@@ -29,6 +29,7 @@ YouTube notes (current reality):
 from __future__ import annotations
 
 from pathlib import Path
+import shutil
 from yt_dlp import YoutubeDL
 
 
@@ -148,12 +149,15 @@ def build_base_opts(out_dir: Path) -> dict:
         # YouTube client selection + optional PO token
         "extractor_args": extractor_args,
 
-        # EJS (JS challenge solver) + node runtime (Python API format)
+        # EJS (JS challenge solver)
         "remote_components": ["ejs:github"],
-        "js_runtimes": {
-            "node": {"path": "/usr/bin/node"}
-        },
     }
+
+    # If node is available, tell yt-dlp explicitly (portable)
+    node_path = shutil.which("node")
+    if node_path:
+        opts["js_runtimes"] = {"node": {"path": node_path}}
+
 
     # Cookies strategy
     if cookie_path.exists():
