@@ -44,13 +44,25 @@ def ask(prompt: str) -> str:
     except (EOFError, KeyboardInterrupt):
         return ""
 
+def resolve_output_dir(user_input: str) -> Path:
+    """
+    Resolve output directory relative to ~/Downloads.
+    Empty input => ~/Downloads
+    Subfolders allowed (e.g. yt/music)
+    Absolute paths are rejected.
+    """
+    base = Path.home() / "Downloads"
 
-def ensure_dir(path_str: str) -> Path:
-    """Expand, resolve, and create the output directory."""
-    out_dir = Path(path_str).expanduser().resolve()
+    if not user_input:
+        out_dir = base
+    else:
+        sub = Path(user_input)
+        if sub.is_absolute():
+            raise ValueError("Absolute paths are not allowed. Use subfolders only.")
+        out_dir = base / sub
+
     out_dir.mkdir(parents=True, exist_ok=True)
     return out_dir
-
 
 # ----------------------------
 # Format selection
@@ -213,7 +225,6 @@ def build_opts_for_format(base_opts: dict, export_ext: str) -> dict:
 
     return opts
 
-
 # ----------------------------
 # Main
 # ----------------------------
@@ -228,12 +239,14 @@ def main() -> None:
             print("Done. Bye!")
             return
 
-        target = ask("→ Output folder name or path (e.g. ~/Videos/Downloads): ")
-        if not target:
-            print("No folder provided. Try again.\n")
+        target = ask("→ Output subfolder (relative to Downloads, empty = Downloads): ")
+
+        try:
+            out_dir = resolve_output_dir(target)
+        except ValueError as e:
+            print(f"❌ {e}")
             continue
 
-        out_dir = ensure_dir(target)
         print(f"[i] Saving to: {out_dir}")
 
         exports = choose_formats()
@@ -262,6 +275,7 @@ def main() -> None:
             print("\n⚠️ Finished with some errors.\n")
         else:
             print("\n✅ All exports complete.\n")
+
 
 
 if __name__ == "__main__":
