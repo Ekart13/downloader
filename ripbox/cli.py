@@ -4,19 +4,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-
 from yt_dlp import YoutubeDL
 
 from .formats import choose_formats
-from .ytdlp_opts import build_base_opts, build_opts_for_format
+from .ytdlp_opts import build_base_opts, build_opts_for_format, cookie_sources
 
-
-# ----------------------------
-# Helpers (CLI input + output dir)
-# ----------------------------
 
 def ask(prompt: str) -> str:
-    """Read user input safely (handles Ctrl+C / Ctrl+D)."""
     try:
         return input(prompt).strip()
     except (EOFError, KeyboardInterrupt):
@@ -24,14 +18,7 @@ def ask(prompt: str) -> str:
 
 
 def resolve_output_dir(user_input: str) -> Path:
-    """
-    Resolve output directory relative to ~/Downloads.
-    Empty input => ~/Downloads
-    Subfolders allowed (e.g. yt/music)
-    Absolute paths are rejected (safety + predictable behavior).
-    """
     base = Path.home() / "Downloads"
-
     if not user_input:
         out_dir = base
     else:
@@ -39,14 +26,32 @@ def resolve_output_dir(user_input: str) -> Path:
         if sub.is_absolute():
             raise ValueError("Absolute paths are not allowed. Use subfolders only.")
         out_dir = base / sub
-
     out_dir.mkdir(parents=True, exist_ok=True)
     return out_dir
 
 
-# ----------------------------
-# Main (CLI program loop)
-# ----------------------------
+def run_download(url: str, ydl_opts: dict) -> bool:
+    cf = ydl_opts.get("cookiefile")
+    cb = ydl_opts.get("cookiesfrombrowser")
+    print(f"[dbg] cookiefile={cf!r} cookiesfrombrowser={cb!r}")
+    with YoutubeDL(ydl_opts) as ydl:
+        return ydl.download([url]) == 0
+
+
+def build_cookie_attempts(base_with_cookies: dict) -> list[tuple[str, dict]]:
+    attempts: list[tuple[str, dict]] = []
+
+    if "cookiefile" in base_with_cookies:
+        attempts.append(("cookiefile", dict(base_with_cookies)))
+        return attempts
+
+    for src in cookie_sources():
+        o = dict(base_with_cookies)
+        o["cookiesfrombrowser"] = src
+        attempts.append((f"browser:{src[0]}", o))
+
+    return attempts
+
 
 def main() -> None:
     print("=== Universal video downloader (YouTube / X / Instagram / TikTok / Facebook) ===")
@@ -71,24 +76,61 @@ def main() -> None:
         exports = choose_formats(ask)
         print(f"[i] Export(s): {', '.join(exports)}")
 
-        base_opts = build_base_opts(out_dir)
-
         any_fail = False
+        chosen_cookie_mode: str | None = None
+        chosen_cookie_base: dict | None = None
+
         for export_ext in exports:
             print(f"\n=== Export: {export_ext} ===")
-            ydl_opts = build_opts_for_format(base_opts, export_ext)
+
+            base_no = build_base_opts(out_dir, enable_cookies=False)
+            ydl_no = build_opts_for_format(base_no, export_ext)
 
             try:
-                with YoutubeDL(ydl_opts) as ydl:
-                    result = ydl.download([url])  # 0 on success
-                    if result == 0:
-                        print(f"✅ Done: {export_ext}")
-                    else:
-                        any_fail = True
-                        print(f"⚠️ Some items failed for export {export_ext}. Check logs above.")
-            except Exception as e:
+                if run_download(url, ydl_no):
+                    print(f"[i] Cookies: none")
+                    print(f"✅ Done: {export_ext}")
+                    continue
+            except Exception:
+                pass
+
+            if chosen_cookie_base is not None:
+                ydl_yes = build_opts_for_format(chosen_cookie_base, export_ext)
+                try:
+                    if run_download(url, ydl_yes):
+                        print(f"✅ Done ({chosen_cookie_mode}): {export_ext}")
+                        continue
+                except Exception as e:
+                    any_fail = True
+                    print(f"❌ Error on export {export_ext} ({chosen_cookie_mode}): {e}")
+                    continue
+
+            base_yes = build_base_opts(out_dir, enable_cookies=True)
+            attempts = build_cookie_attempts(base_yes)
+
+            success = False
+            last_err: str | None = None
+
+            for mode, cookie_base in attempts:
+                ydl_try = build_opts_for_format(cookie_base, export_ext)
+                try:
+                    if run_download(url, ydl_try):
+                        chosen_cookie_mode = mode
+                        chosen_cookie_base = cookie_base
+                        print(f"[i] Cookies mode locked: {mode}")
+                        print(f"✅ Done ({mode}): {export_ext}")
+                        success = True
+                        break
+                except Exception as e:
+                    last_err = str(e)
+                    continue
+
+            if not success:
                 any_fail = True
-                print(f"❌ Error on export {export_ext}: {e}")
+                if last_err:
+                    print(f"❌ Failed: {export_ext}: {last_err}")
+                else:
+                    print(f"❌ Failed: {export_ext}")
 
         if any_fail:
             print("\n⚠️ Finished with some errors.\n")
