@@ -1,7 +1,7 @@
 
 ---
 
-```md
+
 # ripbox
 
 Universal interactive **video & audio downloader** written in **Python**, powered by **yt-dlp**.
@@ -56,7 +56,7 @@ ripbox will automatically read and process all URLs from `links.txt`.
 
 ### Example `links.txt`
 
-```
+
 
 [https://www.youtube.com/watch?v=VIDEO_ID_1](https://www.youtube.com/watch?v=VIDEO_ID_1)
 [https://www.youtube.com/watch?v=VIDEO_ID_2](https://www.youtube.com/watch?v=VIDEO_ID_2)
@@ -118,9 +118,9 @@ If a format fails for a specific platform, it’s often a **source/container lim
 
 ### Arch Linux
 
-```bash
+
 sudo pacman -S ffmpeg nodejs
-````
+
 
 Clone the repository and set up a virtual environment:
 
