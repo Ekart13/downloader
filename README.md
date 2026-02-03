@@ -1,4 +1,7 @@
 
+---
+
+```md
 # ripbox
 
 Universal interactive **video & audio downloader** written in **Python**, powered by **yt-dlp**.
@@ -9,22 +12,23 @@ Designed as a **clean Python CLI tool** focused on reliability and real-world yt
 
 ---
 
-## Features
+## Core Features
 
 - Interactive CLI (no long command-line flags)
+- **Bulk downloads via `links.txt` (primary workflow)**
 - Multiple export formats in a single run:
   - **MP4** (default)
   - **MKV**
   - **MOV** (best-effort)
   - **MP3** (audio-only)
 - Best available **video + audio** merge via **ffmpeg**
-- Playlist support (when supported by the platform)
+- Playlist support (**soft mode by default**)
 - Predictable output location:
   - Always uses the system **Downloads** directory
   - Optional subfolders are created automatically
 - Automatic cookie handling:
   - Uses `cookies.txt` if present
-  - Falls back to Firefox browser cookies
+  - Falls back to browser cookies (Firefox, Chromium-based)
 - Hardened YouTube setup:
   - Avoids the broken WEB client
   - Uses `tv`, `mweb`, `tv_embedded` clients
@@ -32,6 +36,57 @@ Designed as a **clean Python CLI tool** focused on reliability and real-world yt
   - Optional PO token support for some mweb formats
 - Safe filenames + long-title trimming
 - Resume support + retry logic
+- Single-line download progress (no spam output)
+- Clean exit handling (Ctrl+C at any time)
+
+---
+
+## Bulk Downloads (links.txt)
+
+**`links.txt` is a first-class feature and the recommended way to use ripbox.**
+
+### How it works
+
+- Create a file named **`links.txt`** in the project root
+- Add **one URL per line**
+- Start `ripbox`
+- When prompted for input, **press Enter on an empty line**
+
+ripbox will automatically read and process all URLs from `links.txt`.
+
+### Example `links.txt`
+
+```
+
+[https://www.youtube.com/watch?v=VIDEO_ID_1](https://www.youtube.com/watch?v=VIDEO_ID_1)
+[https://www.youtube.com/watch?v=VIDEO_ID_2](https://www.youtube.com/watch?v=VIDEO_ID_2)
+[https://www.instagram.com/reel/XXXXXXXX/](https://www.instagram.com/reel/XXXXXXXX/)
+[https://x.com/user/status/XXXXXXXX](https://x.com/user/status/XXXXXXXX)
+
+````
+
+### Why this matters
+
+- Ideal for **large batches**
+- Easy to **edit, reuse, and version**
+- Avoids pasting long URL lists into the terminal
+- Automatically skips lines that are not valid links
+- Makes ripbox suitable for scripted or repeatable workflows
+
+If `links.txt` is missing, ripbox will notify you.
+
+---
+
+## Playlist Behavior
+
+ripbox uses a **soft playlist mode** by default:
+
+- If a playlist item is unavailable, private, or deleted:
+  - It is skipped
+  - The rest of the playlist continues downloading
+- A playlist may complete with skipped entries without failing the entire run
+
+This avoids unnecessary interruptions caused by broken or removed videos.
 
 ---
 
@@ -43,10 +98,10 @@ Not all platforms provide all formats equally.
 - **MKV** usually works where MP4 works
 - **MOV** is best-effort:
   - Some platforms (especially YouTube) do not provide MOV-friendly streams
-  - MOV export may fail (ffmpeg conversion limitations / container constraints)
+  - MOV export may fail due to container or ffmpeg limitations
 - **MP3** works reliably as audio-only extraction
 
-If a format fails for a specific platform, it’s often a **source/container limitation**, not necessarily a bug in ripbox.
+If a format fails for a specific platform, it’s often a **source/container limitation**, not a bug in ripbox.
 
 ---
 
@@ -59,7 +114,9 @@ If a format fails for a specific platform, it’s often a **source/container lim
 
 ---
 
-## Installation (Arch Linux)
+## Installation
+
+### Arch Linux
 
 ```bash
 sudo pacman -S ffmpeg nodejs
@@ -82,8 +139,6 @@ pip install -r requirements.txt
 
 ### Recommended (installed CLI inside venv)
 
-From inside the virtual environment:
-
 ```bash
 pip install -e .
 ripbox
@@ -95,11 +150,15 @@ ripbox
 python -m ripbox.cli
 ```
 
-You will be prompted for:
+### Typical workflow (recommended)
 
-1. Video or playlist URL
-2. Output subfolder (relative to Downloads)
-3. Export format(s)
+1. Put URLs into `links.txt`
+2. Run `ripbox`
+3. Press **Enter** at the input prompt
+4. Select output folder and formats
+5. Let it run
+
+You can press **Ctrl+C at any time** to exit cleanly.
 
 ---
 
@@ -136,8 +195,8 @@ Each format is processed independently to avoid conflicts.
 
 Cookie handling is automatic:
 
-1. If `cookies.txt` exists next to the script/package, it is used.
-2. Otherwise, cookies are read directly from **Firefox**.
+1. If `cookies.txt` exists next to the project, it is used.
+2. Otherwise, cookies are read directly from supported browsers.
 
 This enables access to:
 
@@ -147,29 +206,22 @@ This enables access to:
 
 ### Creating `cookies.txt` manually (optional)
 
-In most cases, no manual setup is required.
-If downloads fail due to login, age, or region restrictions, you can create `cookies.txt` yourself.
-
 **Method 1: Using yt-dlp (recommended)**
 
 ```bash
 yt-dlp --cookies-from-browser firefox --cookies cookies.txt
 ```
 
-This reads cookies from your Firefox profile and saves them to `cookies.txt`.
-
 **Method 2: Browser extension**
 
-You can export cookies using a browser extension such as:
-
-* **Get cookies.txt** (Firefox / Chromium)
+Use an extension such as **Get cookies.txt** (Firefox / Chromium).
 
 Steps:
 
-1. Log in to the website in your browser
-2. Export cookies using the extension
+1. Log in to the website
+2. Export cookies
 3. Save as `cookies.txt`
-4. Place it in the project root (same level as `pyproject.toml`)
+4. Place it in the project root
 
 > Never commit `cookies.txt`.
 > It is intentionally ignored via `.gitignore`.
@@ -196,13 +248,9 @@ ripbox:
 export YTDLP_PO_TOKEN="mweb.gvs+YOUR_TOKEN_HERE"
 ```
 
-Only required for specific YouTube formats.
-
 ---
 
 ## Output Filename Format
-
-Files are saved as:
 
 ```
 Title [VideoID].ext
@@ -219,20 +267,14 @@ Title [VideoID].ext
 ```
 ripbox/
   __init__.py
-  cli.py          # Main CLI entrypoint (ripbox command)
-  formats.py      # Format menu + format selection logic
-  ytdlp_opts.py   # yt-dlp base configuration (cookies, extractors, runtimes)
+  cli.py            # Main CLI entrypoint and control flow
+  downloader.py     # yt-dlp wrapper, progress handling, output verification
+  cookies.py        # Cookie source handling and fallback logic
+  paths.py          # Output directory resolution
+  formats.py        # Format menu and selection logic
+  ytdlp_opts.py     # yt-dlp base configuration
+  url_checks.py     # Fast URL validation and error classification
 ```
-
----
-
-## Troubleshooting
-
-* **ffmpeg not found** → install `ffmpeg`
-* **Node errors** → ensure `node` is in PATH (only needed for some YouTube cases)
-* **403 / login errors** → provide cookies
-* **Format fails on specific platform** → expected in some cases (try MP4)
-* **Playlist item failures** → expected; script continues
 
 ---
 
@@ -258,4 +300,7 @@ MIT License
 **Galeb**
 GitHub: [https://github.com/Ekart13](https://github.com/Ekart13)
 
+```
+
+---
 
